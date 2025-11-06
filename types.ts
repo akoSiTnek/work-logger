@@ -29,4 +29,5 @@ export interface WorkLog {
   task_description: string;
   hours_logged: number;
   created_at: string;
+  status: 'pending' | 'approved' | 'denied';
 }

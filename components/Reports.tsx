@@ -58,7 +58,7 @@ const Reports: React.FC<ReportsProps> = ({ employee }) => {
       setLoading(true);
       const { data, error } = await supabase
         .from('work_logs')
-        .select('date, hours_logged')
+        .select('*')
         .eq('employee_id', employee.id);
 
       if (error) {
@@ -78,6 +78,7 @@ const Reports: React.FC<ReportsProps> = ({ employee }) => {
     const { start: startOfWeek, end: endOfWeek } = getWeekRange(today);
     const { start: startOfMonth, end: endOfMonth } = getMonthRange(today);
 
+    // Total hours worked, regardless of status
     const dailyHours = workLogs
       .filter(log => log.date === todayStr)
       .reduce((sum, log) => sum + log.hours_logged, 0);
@@ -96,10 +97,25 @@ const Reports: React.FC<ReportsProps> = ({ employee }) => {
       })
       .reduce((sum, log) => sum + log.hours_logged, 0);
     
+    // Approved hours for salary calculation
+    const approvedWeeklyHours = workLogs
+      .filter(log => {
+        const logDate = new Date(log.date + 'T00:00:00');
+        return logDate >= startOfWeek && logDate <= endOfWeek && log.status === 'approved';
+      })
+      .reduce((sum, log) => sum + log.hours_logged, 0);
+    
+    const approvedMonthlyHours = workLogs
+      .filter(log => {
+        const logDate = new Date(log.date + 'T00:00:00');
+        return logDate >= startOfMonth && logDate <= endOfMonth && log.status === 'approved';
+      })
+      .reduce((sum, log) => sum + log.hours_logged, 0);
+      
     // Assuming employee.salary is the daily rate and a standard 8-hour workday
     const hourlyRate = (employee.salary ?? 0) / 8;
-    const weeklySalary = weeklyHours * hourlyRate;
-    const monthlySalary = monthlyHours * hourlyRate;
+    const weeklySalary = approvedWeeklyHours * hourlyRate;
+    const monthlySalary = approvedMonthlyHours * hourlyRate;
 
     return { dailyHours, weeklyHours, monthlyHours, weeklySalary, monthlySalary };
   }, [workLogs, employee.salary]);
@@ -142,12 +158,12 @@ const Reports: React.FC<ReportsProps> = ({ employee }) => {
                     <StatRow 
                         label="This Week" 
                         value={stats.weeklySalary.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' })} 
-                        note="Based on hours logged this week."
+                        note="Based on approved hours logged this week."
                     />
                     <StatRow 
                         label="This Month" 
                         value={stats.monthlySalary.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' })}
-                        note="Based on hours logged this month."
+                        note="Based on approved hours logged this month."
                     />
                 </>
             )}
