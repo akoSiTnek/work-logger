@@ -1,15 +1,10 @@
-
 import { GoogleGenAI } from "@google/genai";
 
-if (!process.env.API_KEY) {
-    console.warn("API_KEY environment variable not set. AI features will not work.");
-}
-
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+const ai = process.env.API_KEY ? new GoogleGenAI({ apiKey: process.env.API_KEY }) : null;
 
 export const generateLogDescription = async (keywords: string): Promise<string> => {
-  if (!process.env.API_KEY) {
-    return "API key not configured. Please set the API_KEY environment variable.";
+  if (!ai) {
+    return "AI features are unavailable. API key not configured.";
   }
   if (!keywords.trim()) {
     return "";
