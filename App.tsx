@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LoggedInEmployee } from './types';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
@@ -6,6 +6,20 @@ import { supabase } from './services/supabase';
 
 const App: React.FC = () => {
   const [loggedInEmployee, setLoggedInEmployee] = useState<LoggedInEmployee | null>(null);
+
+  useEffect(() => {
+    // Check for a saved session in localStorage when the app loads
+    try {
+      const storedEmployee = localStorage.getItem('loggedInEmployee');
+      if (storedEmployee) {
+        setLoggedInEmployee(JSON.parse(storedEmployee));
+      }
+    } catch (error) {
+      console.error("Failed to parse stored employee data:", error);
+      // Clear corrupted data
+      localStorage.removeItem('loggedInEmployee');
+    }
+  }, []);
 
   const handleLogin = async (firstName: string): Promise<boolean> => {
     const { data: employees, error } = await supabase
@@ -22,11 +36,14 @@ const App: React.FC = () => {
     const employee = employees?.[0];
 
     if (employee) {
-      setLoggedInEmployee({
+      const employeeData = {
           id: employee.id,
           name: `${employee.first_name} ${employee.last_name}`,
           salary: employee.salary,
-      });
+      };
+      setLoggedInEmployee(employeeData);
+      // Save session to localStorage
+      localStorage.setItem('loggedInEmployee', JSON.stringify(employeeData));
       return true;
     }
 
@@ -35,6 +52,8 @@ const App: React.FC = () => {
 
   const handleLogout = () => {
     setLoggedInEmployee(null);
+    // Clear session from localStorage
+    localStorage.removeItem('loggedInEmployee');
   };
 
   return (
